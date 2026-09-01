@@ -1,15 +1,10 @@
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from inventory import (
-    STORES,
-    RETAILERS,
-    _check_all_retailers_parallel,
-    load_subscribers,
-    _send_sms,
-)
+from inventory import STORES, PRODUCTS, check_all_stores, load_subscribers, send_sms
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 STATE_FILE = Path(__file__).parent / "inventory_state.json"
@@ -25,65 +20,69 @@ def load_state():
 def save_state(state):
     STATE_FILE.write_text(json.dumps(state, indent=2))
 
+def alert_numbers():
+    # Production/background numbers should be kept in GitHub Secrets, not in a public repo.
+    raw = os.getenv("ALERT_PHONE_NUMBERS", "")
+    env_numbers = [x.strip() for x in raw.split(",") if x.strip()]
+    if env_numbers:
+        return env_numbers
+
+    # Local subscribers.json remains useful for private/local testing.
+    return load_subscribers()
+
 def main():
     previous = load_state()
-    current = {}
-    retailer_results = _check_all_retailers_parallel()
-    alerts = []
-
     check_time = datetime.now(PACIFIC).isoformat()
 
-    for store in STORES:
+    results = check_all_stores()
+    current = {}
+    alerts = []
+
+    for store, inventory in zip(STORES, results):
         key = f"{store['city']}|{store['store']}|{store['address']}"
-        result = retailer_results[store["store"]]
 
         current[key] = {
-            "status": result["status"],
-            "price": result["price"],
-            "signal": result["signal"],
+            "status": inventory["status"],
+            "price": inventory["price"],
+            "signal": inventory["signal"],
+            "source": inventory.get("source", ""),
             "checked_at": check_time,
         }
 
         old_status = previous.get(key, {}).get("status")
 
-        # Do not send an alert merely because this is the first-ever check.
-        if (
-            previous
-            and result["status"] == "IN STOCK"
-            and old_status != "IN STOCK"
-        ):
-            alerts.append((store, result))
+        # Only a verified LOCAL IN STOCK status can trigger a text.
+        # ONLINE LISTING ONLY and CHECK MANUALLY never trigger alerts.
+        if previous and inventory["status"] == "IN STOCK" and old_status != "IN STOCK":
+            alerts.append((store, inventory))
 
     save_state(current)
 
     if not alerts:
-        print("No new restocks.")
+        print("No verified new local restocks.")
         return
 
-    subscribers = load_subscribers()
-
-    if not subscribers:
-        print("Restock detected, but no SMS subscribers are saved.")
+    numbers = alert_numbers()
+    if not numbers:
+        print("Verified restock detected, but no alert phone numbers are configured.")
         return
 
-    for store, result in alerts:
+    for store, inventory in alerts:
         price = (
-            f"${result['price']:.2f}"
-            if result["price"] is not None
+            f"${inventory['price']:.2f}"
+            if isinstance(inventory.get("price"), (int, float))
             else "Price unavailable"
         )
-
         body = (
             "RESTOCK: Topps Chrome Updates Basketball\n"
             f"{store['store']} - {store['city']}\n"
             f"{store['address']}\n"
             f"{price}\n"
-            "Check retailer site before driving."
+            "Verified local inventory signal. Recheck retailer before driving."
         )
-
-        for phone in subscribers:
-            ok, msg = _send_sms(phone, body)
-            print(phone, ok, msg)
+        for number in numbers:
+            ok, message = send_sms(number, body)
+            print(number, ok, message)
 
 if __name__ == "__main__":
     main()

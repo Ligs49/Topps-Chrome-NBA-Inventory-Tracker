@@ -1,74 +1,76 @@
-# Topps 2026 Chrome NBA Inventory Tracker
+# Topps 2026 Chrome NBA Inventory Tracker v2
 
-Simple Streamlit tracker for selected Davis and Woodland, California retailers.
+Tracks 2025-26 Topps Chrome Updates Basketball at selected Big 5, Target, Walmart, Best Buy, and CVS locations in:
 
-## Stores
+- Davis
+- Woodland
+- Napa
+- Fairfield
+- Suisun City
+- Vacaville
 
-### Davis
-- Big 5 — 1301 W Covell Blvd
-- Target — 4601 2nd St
-- CVS — 1471 W Covell Blvd
-- CVS — 1550 E Covell Blvd
+## v2 inventory logic
 
-### Woodland
-- Big 5 — 431 Pioneer Ave
-- Target — 2185 Bronze Star Dr
-- Walmart — 1720 E Main St
-- Best Buy — 2165 Bronze Star Dr
-- CVS — 7 W Main St
+The tracker is deliberately conservative.
 
-Davis currently has no Walmart or Best Buy location, so those chains are not shown there.
+### IN STOCK
+Only when a checker finds a local-store-specific availability/pickup signal.
 
-## What v1 does
+### OUT OF STOCK
+Local store context is found and the retailer reports unavailable/out of stock.
 
-- Checks public retailer web signals for 2025-26 Topps Chrome Updates Basketball.
-- Limits the Streamlit app inventory fetch to once per hour.
-- Has no manual inventory refresh button.
-- Auto-updates the countdown display once per minute.
-- Rejects obviously inflated marketplace/reseller prices using retailer-specific price ceilings.
-- Lets a user enroll a U.S. phone number.
-- Can send SMS through Twilio.
-- Includes a GitHub Actions workflow intended to run `monitor.py` hourly.
-- Sends a restock SMS only when a status transitions into `IN STOCK`.
+### ONLINE LISTING ONLY
+The product is listed online, but the exact monitored store could not be verified.
 
-## Important limitation
+### CHECK MANUALLY
+The retailer blocked the check, timed out, required unresolved client-side/login behavior, or returned ambiguous inventory.
 
-Retailer public webpages are not guaranteed to expose exact shelf inventory for every local store.
-Target, Walmart, Best Buy, Big 5, and CVS can change their pages, JavaScript, APIs, anti-bot
-rules, or pickup logic at any time.
+### NO LISTING
+No matching public Topps Chrome basketball listing was detected.
 
-This version intentionally does NOT bypass CAPTCHAs, login walls, or anti-bot protection.
-It is a conservative first version. The next step is to strengthen each retailer adapter one
-at a time for store-specific pickup inventory where the retailer exposes a usable public signal.
+Only a transition to **IN STOCK** sends a restock SMS.
 
-## Local run
+## Retailer adapters
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+- Best Buy: official Best Buy developer API when `BESTBUY_API_KEY` is configured.
+- Target: Playwright browser check with best-effort ZIP/store selection.
+- Walmart: Playwright browser check with best-effort ZIP/store selection.
+- Big 5: public web request, then Playwright fallback.
+- CVS: public web request, then Playwright fallback.
 
-## Twilio setup
+The code does not bypass CAPTCHAs, login requirements, or anti-bot protections.
 
-Add these secrets in Streamlit Community Cloud and GitHub Actions:
+## Required GitHub Actions secrets for SMS
 
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_FROM_NUMBER`
+- `ALERT_PHONE_NUMBERS`
 
-The phone numbers entered in the Streamlit app are saved to `subscribers.json`.
+`ALERT_PHONE_NUMBERS` should contain comma-separated E.164 numbers:
 
-### Persistence warning
+`+17075551234,+15305551234`
 
-Streamlit Community Cloud's local filesystem should not be treated as a durable database.
-For reliable multi-user phone enrollment, the next version should move subscribers to a
-small persistent database such as Supabase. For a single-user first test, the local file
-is enough to prove the flow.
+## Optional Best Buy secret
 
-## GitHub Actions
+Create a Best Buy developer API key and add:
 
-The included `.github/workflows/hourly_inventory.yml` runs once per hour.
-GitHub scheduled workflows may start several minutes after the exact cron time.
+- `BESTBUY_API_KEY`
 
-The workflow commits `inventory_state.json` back to the repository so it can detect
-out-of-stock -> in-stock transitions on later runs.
+Without it, Best Buy rows will show CHECK MANUALLY.
+
+## Streamlit deployment
+
+- Python 3.12
+- Main file: `app.py`
+
+The dashboard never performs retailer checks. GitHub Actions checks once per hour and commits `inventory_state.json`. The Streamlit dashboard reads that saved file.
+
+## First run after uploading v2
+
+1. Replace the repository files with the v2 files.
+2. Commit.
+3. Go to GitHub Actions.
+4. Run **Hourly inventory check** manually once.
+5. Wait for green success.
+6. Reload the Streamlit dashboard.

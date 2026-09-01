@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -8,7 +7,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-from inventory import STORES, RETAILERS, load_subscribers, save_subscriber, send_test_sms
+from inventory import STORES, PRODUCTS, load_subscribers, save_subscriber, send_test_sms
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 STATE_FILE = Path(__file__).parent / "inventory_state.json"
@@ -19,16 +18,17 @@ st.set_page_config(
     layout="wide",
 )
 
-# Refresh the DISPLAY every 5 minutes.
-# This does NOT perform a retailer inventory check.
+# Display refresh only. It NEVER triggers retailer inventory checks.
 st_autorefresh(interval=300_000, key="display_refresh")
 
 st.title("🏀 Topps 2026 Chrome NBA Inventory Tracker")
-st.caption("Davis & Woodland, California • Big 5 • Target • Walmart • Best Buy • CVS")
+st.caption(
+    "Davis • Woodland • Napa • Fairfield • Suisun City • Vacaville"
+)
 
 st.info(
-    "Inventory is checked automatically by GitHub once per hour. "
-    "Reloading this page does not trigger another inventory check."
+    "Retail inventory is checked by GitHub Actions once per hour. "
+    "Refreshing this dashboard does not trigger another retailer check."
 )
 
 def load_state():
@@ -41,41 +41,36 @@ def load_state():
         return {}
 
 state = load_state()
-
-rows = []
 latest_check = None
+rows = []
 
 for store in STORES:
     key = f"{store['city']}|{store['store']}|{store['address']}"
     saved = state.get(key, {})
 
-    checked_raw = saved.get("checked_at")
     checked_dt = None
-    if checked_raw:
+    raw = saved.get("checked_at")
+    if raw:
         try:
-            checked_dt = datetime.fromisoformat(checked_raw)
+            checked_dt = datetime.fromisoformat(raw)
             if checked_dt.tzinfo is None:
                 checked_dt = checked_dt.replace(tzinfo=PACIFIC)
             checked_dt = checked_dt.astimezone(PACIFIC)
             if latest_check is None or checked_dt > latest_check:
                 latest_check = checked_dt
         except Exception:
-            checked_dt = None
-
-    status = saved.get("status", "WAITING FOR FIRST CHECK")
-    price = saved.get("price")
-    signal = saved.get("signal", "No hourly result saved yet")
+            pass
 
     rows.append(
         {
             "City": store["city"],
             "Store": store["store"],
             "Address": store["address"],
-            "Product": RETAILERS[store["store"]]["product"],
-            "Status": status,
-            "Price": f"${price:.2f}" if isinstance(price, (int, float)) else "—",
+            "Product": PRODUCTS[store["store"]]["name"],
+            "Status": saved.get("status", "WAITING FOR FIRST CHECK"),
+            "Price": saved.get("price"),
             "Last Checked": checked_dt.strftime("%-I:%M %p") if checked_dt else "—",
-            "Signal": signal,
+            "Signal": saved.get("signal", "No hourly result saved yet."),
         }
     )
 
@@ -87,78 +82,84 @@ if latest_check:
 else:
     st.warning(
         "No saved inventory result is available yet. "
-        "Run the GitHub 'Hourly inventory check' workflow once."
+        "Run GitHub → Actions → Hourly inventory check → Run workflow once."
     )
 
-def status_icon(value):
-    value = str(value).upper()
-
-    if value == "IN STOCK":
-        return "🟢 IN STOCK"
-    if value == "OUT OF STOCK":
-        return "🔴 OUT OF STOCK"
-    if value == "NO LISTING":
-        return "⚪ NO LISTING"
-    if value == "CHECK MANUALLY":
-        return "🟡 CHECK MANUALLY"
-    if value == "WAITING FOR FIRST CHECK":
-        return "⚪ WAITING FOR FIRST CHECK"
-    return f"⚪ {value}"
+city_options = ["All"] + sorted({s["city"] for s in STORES})
+city = st.selectbox("City", city_options, index=0)
 
 df = pd.DataFrame(rows)
-df["Status"] = df["Status"].map(status_icon)
+if city != "All":
+    df = df[df["City"] == city].copy()
+
+def render_status(status):
+    status = str(status).upper()
+    return {
+        "IN STOCK": "🟢 IN STOCK",
+        "OUT OF STOCK": "🔴 OUT OF STOCK",
+        "ONLINE LISTING ONLY": "🔵 ONLINE LISTING ONLY",
+        "NO LISTING": "⚪ NO LISTING",
+        "CHECK MANUALLY": "🟡 CHECK MANUALLY",
+        "WAITING FOR FIRST CHECK": "⚪ WAITING FOR FIRST CHECK",
+    }.get(status, f"⚪ {status}")
+
+df["Status"] = df["Status"].map(render_status)
+df["Price"] = df["Price"].apply(
+    lambda x: f"${x:.2f}" if isinstance(x, (int, float)) and x > 1 else "—"
+)
 
 st.subheader("Store inventory")
-st.dataframe(df, use_container_width=True, hide_index=True)
+st.dataframe(
+    df[["City","Store","Address","Product","Status","Price","Last Checked","Signal"]],
+    use_container_width=True,
+    hide_index=True,
+)
 
-with st.expander("What the status means"):
+with st.expander("What each status means"):
     st.markdown(
         """
-- **🟢 IN STOCK** — retailer-owned listing appears available.
-- **🔴 OUT OF STOCK** — retailer listing explicitly reports unavailable.
-- **⚪ NO LISTING** — no matching public product listing was detected.
-- **🟡 CHECK MANUALLY** — retailer blocks or does not expose a reliable public inventory signal.
-- **⚪ WAITING FOR FIRST CHECK** — GitHub has not yet saved an hourly result.
+- **🟢 IN STOCK** — the checker found a **local-store-specific** availability/pickup signal.
+- **🔴 OUT OF STOCK** — the checker found local-store context and an unavailable/out-of-stock signal.
+- **🔵 ONLINE LISTING ONLY** — the product is on the retailer website, but the selected local store was **not verified**. This does **not** send an alert.
+- **🟡 CHECK MANUALLY** — the retailer blocked automation, timed out, requires login/JavaScript the checker could not resolve, or returned ambiguous local inventory. This does **not** send an alert.
+- **⚪ NO LISTING** — no matching Topps Chrome basketball listing was detected.
+- **⚪ WAITING FOR FIRST CHECK** — GitHub has not saved the first hourly check yet.
 
-Third-party marketplace/reseller listings are excluded from restock alerts.
+Only **IN STOCK** can trigger a restock text.
         """
     )
 
 st.divider()
 st.subheader("📱 Restock text alerts")
-
 st.write(
-    "Enter a U.S. mobile number. Alerts are sent only when the hourly monitor "
-    "detects a change into **IN STOCK**."
+    "For reliable hourly alerts, configure phone numbers in the GitHub Actions secret "
+    "`ALERT_PHONE_NUMBERS` as comma-separated E.164 numbers, for example "
+    "`+17075551234,+15305551234`."
 )
 
-with st.form("phone_form", clear_on_submit=False):
-    phone = st.text_input("Mobile number", placeholder="(530) 555-1234")
-    consent = st.checkbox("I agree to receive restock text alerts at this number.")
-    submitted = st.form_submit_button("Save phone for alerts")
-
-if submitted:
-    if not consent:
-        st.error("Please confirm consent before saving the number.")
-    else:
-        ok, message = save_subscriber(phone)
-        st.success(message) if ok else st.error(message)
-
-subscribers = load_subscribers()
-if subscribers:
-    st.caption(f"{len(subscribers)} phone number(s) currently enrolled.")
-
-with st.expander("SMS setup / test"):
-    st.write(
-        "SMS uses Twilio. Add the Twilio credentials to Streamlit Secrets and GitHub Actions Secrets."
+with st.expander("Optional local Streamlit SMS test"):
+    st.caption(
+        "This form saves only on the current Streamlit instance and is intended for testing. "
+        "Do not rely on it as the permanent hourly subscriber database."
     )
+    with st.form("phone_form"):
+        phone = st.text_input("Mobile number", placeholder="(707) 555-1234")
+        consent = st.checkbox("I agree to receive a test/restock text at this number.")
+        submitted = st.form_submit_button("Save test phone")
+    if submitted:
+        if not consent:
+            st.error("Please confirm consent.")
+        else:
+            ok, msg = save_subscriber(phone)
+            st.success(msg) if ok else st.error(msg)
 
-    if st.button("Send test SMS", disabled=not bool(subscribers)):
-        ok, message = send_test_sms()
-        st.success(message) if ok else st.warning(message)
+    subscribers = load_subscribers()
+    if subscribers and st.button("Send test SMS"):
+        ok, msg = send_test_sms()
+        st.success(msg) if ok else st.warning(msg)
 
 st.divider()
 st.caption(
-    "The dashboard itself never contacts retailer websites. "
-    "The GitHub Action performs the inventory check once per hour."
+    "The app does not bypass CAPTCHAs, authentication, or retailer anti-bot controls. "
+    "When exact local inventory cannot be verified, it deliberately avoids claiming IN STOCK."
 )
