@@ -29,8 +29,9 @@ def main():
     previous = load_state()
     current = {}
     retailer_results = _check_all_retailers_parallel()
-
     alerts = []
+
+    check_time = datetime.now(PACIFIC).isoformat()
 
     for store in STORES:
         key = f"{store['city']}|{store['store']}|{store['address']}"
@@ -39,12 +40,18 @@ def main():
         current[key] = {
             "status": result["status"],
             "price": result["price"],
-            "checked_at": datetime.now(PACIFIC).isoformat(),
+            "signal": result["signal"],
+            "checked_at": check_time,
         }
 
         old_status = previous.get(key, {}).get("status")
 
-        if result["status"] == "IN STOCK" and old_status != "IN STOCK":
+        # Do not send an alert merely because this is the first-ever check.
+        if (
+            previous
+            and result["status"] == "IN STOCK"
+            and old_status != "IN STOCK"
+        ):
             alerts.append((store, result))
 
     save_state(current)
@@ -60,7 +67,11 @@ def main():
         return
 
     for store, result in alerts:
-        price = f"${result['price']:.2f}" if result["price"] is not None else "Price unavailable"
+        price = (
+            f"${result['price']:.2f}"
+            if result["price"] is not None
+            else "Price unavailable"
+        )
 
         body = (
             "RESTOCK: Topps Chrome Updates Basketball\n"
