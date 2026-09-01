@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -6,7 +5,13 @@ import pandas as pd
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 
-from inventory import CHECK_INTERVAL_SECONDS, get_inventory_snapshot, load_subscribers, save_subscriber, send_test_sms
+from inventory import (
+    CHECK_INTERVAL_SECONDS,
+    get_inventory_snapshot,
+    load_subscribers,
+    save_subscriber,
+    send_test_sms,
+)
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 
@@ -16,19 +21,21 @@ st.set_page_config(
     layout="wide",
 )
 
-# Refresh the DISPLAY once a minute, but inventory.py caches retailer checks for one hour.
+# Refresh only the page display once per minute.
+# Retailer checks remain cached for one hour.
 st_autorefresh(interval=60_000, key="display_refresh")
 
 st.title("🏀 Topps 2026 Chrome NBA Inventory Tracker")
-st.caption(
-    "Davis & Woodland, California • Big 5 • Target • Walmart • Best Buy • CVS"
-)
+st.caption("Davis & Woodland, California • Big 5 • Target • Walmart • Best Buy • CVS")
 
 st.info(
-    "Inventory checks are limited to once per hour. Reloading the page does not force another retailer check."
+    "Inventory checks are limited to once per hour. Reloading this page does not force another retailer check."
 )
 
-snapshot = get_inventory_snapshot()
+# Show page content immediately, then perform the inventory snapshot under a spinner.
+with st.spinner("Loading latest inventory snapshot..."):
+    snapshot = get_inventory_snapshot()
+
 checked_at = snapshot["checked_at"]
 next_check = checked_at + timedelta(seconds=CHECK_INTERVAL_SECONDS)
 now = datetime.now(PACIFIC)
@@ -45,15 +52,7 @@ c3.metric("Time remaining", f"{hours:02d}:{minutes:02d}:{seconds:02d}")
 st.subheader("Store inventory")
 
 df = pd.DataFrame(snapshot["rows"])
-display_cols = [
-    "City",
-    "Store",
-    "Address",
-    "Product",
-    "Status",
-    "Price",
-    "Signal",
-]
+display_cols = ["City", "Store", "Address", "Product", "Status", "Price", "Signal"]
 df = df[display_cols]
 
 def status_icon(value):
@@ -74,9 +73,9 @@ st.dataframe(df, use_container_width=True, hide_index=True)
 with st.expander("What the status means"):
     st.markdown(
         """
-- **🟢 IN STOCK** — a retailer-owned listing is detected at an acceptable retail price.
+- **🟢 IN STOCK** — a retailer-owned listing appears available at or below the retail threshold.
 - **🔴 OUT OF STOCK** — the monitored retailer listing explicitly reports unavailable.
-- **⚪ NO LISTING** — the retailer currently does not expose a matching online listing.
+- **⚪ NO LISTING** — no matching public product listing was found.
 - **🟡 CHECK MANUALLY** — the site responded, but its public page did not provide a reliable inventory signal.
 
 Third-party marketplace/reseller listings are intentionally excluded from restock alerts.
@@ -100,10 +99,7 @@ if submitted:
         st.error("Please confirm consent before saving the number.")
     else:
         ok, message = save_subscriber(phone)
-        if ok:
-            st.success(message)
-        else:
-            st.error(message)
+        st.success(message) if ok else st.error(message)
 
 subs = load_subscribers()
 if subs:
@@ -112,7 +108,7 @@ if subs:
 with st.expander("SMS setup / test"):
     st.write(
         "SMS uses Twilio. After TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_FROM_NUMBER "
-        "are added to Streamlit/GitHub secrets, you can test the configured phone below."
+        "are added to Streamlit/GitHub secrets, you can send a test text."
     )
     if st.button("Send test SMS", disabled=not bool(subs)):
         ok, msg = send_test_sms()
@@ -120,6 +116,6 @@ with st.expander("SMS setup / test"):
 
 st.divider()
 st.caption(
-    "Important: retailer websites can change without notice. This first version uses public retailer "
-    "web signals and does not bypass CAPTCHAs, login walls, or anti-bot protections."
+    "Retailer websites can change without notice. This app uses public retailer web signals "
+    "and does not bypass CAPTCHAs, login walls, or anti-bot protections."
 )

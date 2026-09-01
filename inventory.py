@@ -1,7 +1,7 @@
 import json
 import os
 import re
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -12,14 +12,12 @@ from bs4 import BeautifulSoup
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 CHECK_INTERVAL_SECONDS = 3600
+REQUEST_TIMEOUT_SECONDS = 7
+MAX_WORKERS = 5
 
 DATA_DIR = Path(__file__).parent
 SUBSCRIBERS_FILE = DATA_DIR / "subscribers.json"
-STATE_FILE = DATA_DIR / "inventory_state.json"
 
-PRODUCT_NAME = "2025-26 Topps Chrome Updates Basketball"
-
-# Actual chain locations found in Davis/Woodland.
 STORES = [
     {"city": "Davis", "store": "Big 5", "address": "1301 W Covell Blvd, Davis, CA 95616"},
     {"city": "Davis", "store": "Target", "address": "4601 2nd St, Davis, CA 95618"},
@@ -32,7 +30,6 @@ STORES = [
     {"city": "Woodland", "store": "CVS", "address": "7 W Main St, Woodland, CA 95695"},
 ]
 
-# Retailer-owned/known product pages. Marketplace prices are rejected by max_price.
 RETAILERS = {
     "Target": {
         "url": "https://www.target.com/p/-/A-1012663802",
@@ -79,7 +76,7 @@ def _extract_price(text):
             pass
     return min(prices) if prices else None
 
-def _classify_page(retailer, html, max_price):
+def _classify_page(html, max_price):
     soup = BeautifulSoup(html, "html.parser")
     text = " ".join(soup.stripped_strings)
     lower = text.lower()
@@ -89,9 +86,8 @@ def _classify_page(retailer, html, max_price):
     if not product_words:
         return "NO LISTING", price, "No matching public product listing found"
 
-    # Exclude obviously inflated third-party/marketplace pricing.
     if price is not None and price > max_price:
-        return "CHECK MANUALLY", price, "Matching listing found, but price appears above retail threshold"
+        return "CHECK MANUALLY", price, "Matching listing found above retail threshold"
 
     out_terms = [
         "out of stock",
@@ -113,46 +109,100 @@ def _classify_page(retailer, html, max_price):
     if any(term in lower for term in in_terms):
         return "IN STOCK", price, "Retailer-owned web listing appears available"
 
-    return "CHECK MANUALLY", price, "Public page does not expose a reliable availability phrase"
+    return "CHECK MANUALLY", price, "No reliable public availability phrase found"
 
 def check_retailer(retailer):
     cfg = RETAILERS[retailer]
     try:
-        r = requests.get(cfg["url"], headers=HEADERS, timeout=20)
-        if r.status_code in (403, 429):
+        response = requests.get(
+            cfg["url"],
+            headers=HEADERS,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+            allow_redirects=True,
+        )
+
+        if response.status_code in (401, 403, 429):
             return {
                 "status": "CHECK MANUALLY",
                 "price": None,
-                "signal": f"Retailer blocked automated request ({r.status_code})",
+                "signal": f"Retailer blocked automated request ({response.status_code})",
             }
-        r.raise_for_status()
-        status, price, signal = _classify_page(retailer, r.text, cfg["max_price"])
+
+        response.raise_for_status()
+        status, price, signal = _classify_page(response.text, cfg["max_price"])
         return {"status": status, "price": price, "signal": signal}
+
+    except requests.Timeout:
+        return {
+            "status": "CHECK MANUALLY",
+            "price": None,
+            "signal": f"Retailer timed out after {REQUEST_TIMEOUT_SECONDS}s",
+        }
+    except requests.RequestException as exc:
+        return {
+            "status": "CHECK MANUALLY",
+            "price": None,
+            "signal": f"Retailer request failed: {type(exc).__name__}",
+        }
     except Exception as exc:
         return {
             "status": "CHECK MANUALLY",
             "price": None,
-            "signal": f"Check failed: {type(exc).__name__}",
+            "signal": f"Unexpected check error: {type(exc).__name__}",
         }
+
+def _check_all_retailers_parallel():
+    results = {}
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(check_retailer, retailer): retailer
+            for retailer in RETAILERS
+        }
+
+        for future in as_completed(futures):
+            retailer = futures[future]
+            try:
+                results[retailer] = future.result()
+            except Exception as exc:
+                results[retailer] = {
+                    "status": "CHECK MANUALLY",
+                    "price": None,
+                    "signal": f"Parallel check failed: {type(exc).__name__}",
+                }
+
+    # Defensive fallback in case any future disappeared unexpectedly.
+    for retailer in RETAILERS:
+        results.setdefault(
+            retailer,
+            {
+                "status": "CHECK MANUALLY",
+                "price": None,
+                "signal": "No result returned",
+            },
+        )
+
+    return results
 
 @st.cache_data(ttl=CHECK_INTERVAL_SECONDS, show_spinner=False)
 def get_inventory_snapshot():
     checked_at = datetime.now(PACIFIC)
-    retailer_results = {name: check_retailer(name) for name in RETAILERS}
-    rows = []
+    retailer_results = _check_all_retailers_parallel()
 
+    rows = []
     for store in STORES:
-        r = retailer_results[store["store"]]
+        result = retailer_results[store["store"]]
         product = RETAILERS[store["store"]]["product"]
+
         rows.append(
             {
                 "City": store["city"],
                 "Store": store["store"],
                 "Address": store["address"],
                 "Product": product,
-                "Status": r["status"],
-                "Price": f"${r['price']:.2f}" if r["price"] is not None else "—",
-                "Signal": r["signal"],
+                "Status": result["status"],
+                "Price": f"${result['price']:.2f}" if result["price"] is not None else "—",
+                "Signal": result["signal"],
             }
         )
 
@@ -207,7 +257,11 @@ def _send_sms(to_number, body):
 
     try:
         from twilio.rest import Client
-        Client(sid, token).messages.create(body=body, from_=from_num, to=to_number)
+        Client(sid, token).messages.create(
+            body=body,
+            from_=from_num,
+            to=to_number,
+        )
         return True, "SMS sent."
     except Exception as exc:
         return False, f"SMS failed: {type(exc).__name__}"
@@ -216,6 +270,7 @@ def send_test_sms():
     subscribers = load_subscribers()
     if not subscribers:
         return False, "No phone number is enrolled."
+
     return _send_sms(
         subscribers[0],
         "Test: Topps 2026 Chrome NBA Inventory Tracker text alerts are working.",

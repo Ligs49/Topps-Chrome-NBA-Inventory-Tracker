@@ -1,22 +1,15 @@
-"""
-Hourly background monitor.
-
-Recommended use:
-- GitHub Actions runs this once per hour.
-- It compares the latest status with inventory_state.json.
-- It texts subscribers only when a retailer transitions into IN STOCK.
-
-Important:
-The public-page checkers are deliberately conservative and do not bypass
-retailer anti-bot systems. Store-level APIs can be added later.
-"""
 import json
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-# Import helper functions without Streamlit UI.
-from inventory import STORES, RETAILERS, check_retailer, load_subscribers, _send_sms
+from inventory import (
+    STORES,
+    RETAILERS,
+    _check_all_retailers_parallel,
+    load_subscribers,
+    _send_sms,
+)
 
 PACIFIC = ZoneInfo("America/Los_Angeles")
 STATE_FILE = Path(__file__).parent / "inventory_state.json"
@@ -35,12 +28,14 @@ def save_state(state):
 def main():
     previous = load_state()
     current = {}
-    retailer_results = {name: check_retailer(name) for name in RETAILERS}
+    retailer_results = _check_all_retailers_parallel()
 
     alerts = []
+
     for store in STORES:
         key = f"{store['city']}|{store['store']}|{store['address']}"
         result = retailer_results[store["store"]]
+
         current[key] = {
             "status": result["status"],
             "price": result["price"],
@@ -48,6 +43,7 @@ def main():
         }
 
         old_status = previous.get(key, {}).get("status")
+
         if result["status"] == "IN STOCK" and old_status != "IN STOCK":
             alerts.append((store, result))
 
@@ -58,19 +54,22 @@ def main():
         return
 
     subscribers = load_subscribers()
+
     if not subscribers:
         print("Restock detected, but no SMS subscribers are saved.")
         return
 
     for store, result in alerts:
         price = f"${result['price']:.2f}" if result["price"] is not None else "Price unavailable"
+
         body = (
-            f"RESTOCK: Topps Chrome Updates Basketball\n"
+            "RESTOCK: Topps Chrome Updates Basketball\n"
             f"{store['store']} - {store['city']}\n"
             f"{store['address']}\n"
             f"{price}\n"
-            f"Check retailer site before driving."
+            "Check retailer site before driving."
         )
+
         for phone in subscribers:
             ok, msg = _send_sms(phone, body)
             print(phone, ok, msg)
