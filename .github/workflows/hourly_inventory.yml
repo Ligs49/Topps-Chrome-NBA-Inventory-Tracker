@@ -31,10 +31,19 @@ jobs:
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
         run: python monitor.py
 
-      - name: Save inventory state
+      -      - name: Save inventory state
         run: |
           git config user.name "inventory-bot"
           git config user.email "inventory-bot@users.noreply.github.com"
+
           git add inventory_state.json
-          git diff --cached --quiet || git commit -m "Update inventory state"
-          git push
+
+          if git diff --cached --quiet; then
+            echo "No inventory changes to save."
+            exit 0
+          fi
+
+          git commit -m "Update inventory state"
+
+          git pull --rebase origin main
+          git push origin main
