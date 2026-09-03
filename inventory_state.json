@@ -1,191 +1,191 @@
 {
   "Davis|Big 5|1301 W Covell Blvd, Davis, CA 95616": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "NO LISTING",
+    "price": 21.99,
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Davis|Target|4601 2nd St, Davis, CA 95618": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "ONLINE LISTING ONLY",
+    "price": 11.25,
+    "signal": "Product is listed online, but local-store pickup could not be verified.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Davis|CVS|1471 W Covell Blvd, Davis, CA 95616": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Davis|CVS|1550 E Covell Blvd, Davis, CA 95616": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Woodland|Big 5|431 Pioneer Ave, Woodland, CA 95776": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "NO LISTING",
+    "price": 21.99,
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Woodland|Target|2185 Bronze Star Dr, Woodland, CA 95776": {
-    "status": "CHECK MANUALLY",
+    "status": "ONLINE LISTING ONLY",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "Product is listed online, but local-store pickup could not be verified.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Woodland|Walmart|1720 E Main St, Woodland, CA 95776": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Woodland|Best Buy|2165 Bronze Star Dr, Woodland, CA 95776": {
     "status": "CHECK MANUALLY",
     "price": null,
     "signal": "Best Buy API key not configured. Add BESTBUY_API_KEY to GitHub Actions secrets.",
     "source": "Best Buy API",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Woodland|CVS|7 W Main St, Woodland, CA 95695": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|Big 5|1305 Trancas St, Napa, CA 94558": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "NO LISTING",
+    "price": 21.99,
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|Target|205 Soscol Ave, Napa, CA 94559": {
-    "status": "CHECK MANUALLY",
+    "status": "ONLINE LISTING ONLY",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "Product is listed online, but local-store pickup could not be verified.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|Target|4000 Bel Aire Plaza, Napa, CA 94558": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "ONLINE LISTING ONLY",
+    "price": 11.25,
+    "signal": "Product is listed online, but local-store pickup could not be verified.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|Walmart|681 Lincoln Ave, Napa, CA 94558": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|CVS|291 S Coombs St, Napa, CA 94559": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|CVS|675 Trancas St, Napa, CA 94558": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Napa|CVS|1558 Trancas St, Napa, CA 94558": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Fairfield|Big 5|1320 Gateway Blvd Ste M2, Fairfield, CA 94533": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "NO LISTING",
+    "price": 21.99,
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Fairfield|Target|2059 Cadenasso Dr, Fairfield, CA 94533": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "ONLINE LISTING ONLY",
+    "price": 44.99,
+    "signal": "Product is listed online, but local-store pickup could not be verified.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Fairfield|Walmart|2701 N Texas St, Fairfield, CA 94533": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Fairfield|CVS|300 Travis Blvd, Fairfield, CA 94533": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Fairfield|CVS|5059 Business Center Dr, Fairfield, CA 94534": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Suisun City|Walmart|350 Walters Rd, Suisun City, CA 94585": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Vacaville|Big 5|2030 Harbison Dr, Vacaville, CA 95687": {
-    "status": "CHECK MANUALLY",
-    "price": null,
-    "signal": "Browser check failed: Error",
+    "status": "NO LISTING",
+    "price": 21.99,
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Vacaville|Target|3000 Harbison Dr, Vacaville, CA 95687": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Vacaville|Walmart|1501 Helen Power Dr, Vacaville, CA 95687": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Vacaville|Best Buy|1621 E Monte Vista Ave Ste A, Vacaville, CA 95688": {
     "status": "CHECK MANUALLY",
     "price": null,
     "signal": "Best Buy API key not configured. Add BESTBUY_API_KEY to GitHub Actions secrets.",
     "source": "Best Buy API",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   },
   "Vacaville|CVS|625 Elmira Rd, Vacaville, CA 95687": {
-    "status": "CHECK MANUALLY",
+    "status": "NO LISTING",
     "price": null,
-    "signal": "Browser check failed: Error",
+    "signal": "No matching Topps Chrome basketball listing found.",
     "source": "",
-    "checked_at": "2026-08-31T20:18:28.198952-07:00"
+    "checked_at": "2026-09-02T20:13:06.418254-07:00"
   }
 }
