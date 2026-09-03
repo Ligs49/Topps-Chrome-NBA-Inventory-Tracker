@@ -24,14 +24,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install Playwright Chromium
+        run: python -m playwright install --with-deps chromium
+
       - name: Run inventory monitor
         env:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          ALERT_PHONE_NUMBERS: ${{ secrets.ALERT_PHONE_NUMBERS }}
+          BESTBUY_API_KEY: ${{ secrets.BESTBUY_API_KEY }}
         run: python monitor.py
 
-      -      - name: Save inventory state
+      - name: Save inventory state
         run: |
           git config user.name "inventory-bot"
           git config user.email "inventory-bot@users.noreply.github.com"
